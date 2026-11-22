@@ -1,0 +1,35 @@
+{
+  "tool": "Postman Collection Runner - Performance",
+  "profile": "Ramp up (30 s)",
+  "virtualUsers": 10,
+  "durationMin": 2,
+  "request": "POST list",
+  "runs": [
+    {
+      "run": 1,
+      "lambdaMemoryMB": 128,
+      "totalRequests": 2481,
+      "requestsPerSec": 20.51,
+      "avgMs": 350,
+      "minMs": 66,
+      "maxMs": 3392,
+      "p90Ms": 381,
+      "p95Ms": 421,
+      "p99Ms": 796,
+      "errorPct": 0
+    },
+    {
+      "run": 2,
+      "lambdaMemoryMB": 512,
+      "totalRequests": 5864,
+      "requestsPerSec": 48.71,
+      "avgMs": 144,
+      "minMs": 107,
+      "maxMs": 1311,
+      "p90Ms": 157,
+      "p95Ms": 167,
+      "p99Ms": 251,
+      "errorPct": 0
+    }
+  ]
+}

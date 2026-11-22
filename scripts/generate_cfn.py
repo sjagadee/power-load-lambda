@@ -1,0 +1,252 @@
+import sys, pathlib
+root = pathlib.Path(sys.argv[1])
+code = (root / "lambda/lambda_function.py").read_text()
+assert len(code) < 4096, len(code)
+code_block = "\n".join(("          " + l) if l.strip() else "" for l in code.splitlines())
+
+tpl = r'''AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless CRUD microservice (API Gateway REST -> Lambda -> DynamoDB) with
+  least-privilege IAM, CloudWatch Logs, API throttling and an optional
+  AWS Lambda Power Tuning state machine (Serverless Application Repository).
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: "Naming" }
+        Parameters: [FunctionName, TableName, ApiName, StageName]
+      - Label: { default: "Lambda sizing" }
+        Parameters: [LambdaMemorySize, LambdaTimeout, LogRetentionDays]
+      - Label: { default: "API protection" }
+        Parameters: [ThrottlingRateLimit, ThrottlingBurstLimit]
+      - Label: { default: "Lambda Power Tuning" }
+        Parameters: [DeployPowerTuning, PowerTuningVersion]
+
+Parameters:
+  FunctionName:
+    Type: String
+    Default: LambdaFunctionOverHttps
+  TableName:
+    Type: String
+    Default: lambda-apigateway
+  ApiName:
+    Type: String
+    Default: DynamoDBOperations
+  StageName:
+    Type: String
+    Default: prod
+    AllowedPattern: "^[A-Za-z0-9_]+$"
+  LambdaMemorySize:
+    Type: Number
+    Default: 512
+    AllowedValues: [128, 256, 512, 1024, 1536, 2048]
+    Description: 512 MB was the balanced choice from Power Tuning.
+  LambdaTimeout:
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 29
+    Description: Seconds. Keep below API Gateway's 29 s integration timeout.
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90]
+  ThrottlingRateLimit:
+    Type: Number
+    Default: 100
+    Description: Steady-state requests/second allowed on the stage.
+  ThrottlingBurstLimit:
+    Type: Number
+    Default: 200
+  DeployPowerTuning:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  PowerTuningVersion:
+    Type: String
+    Default: 4.3.6
+    Description: Semantic version of the aws-lambda-power-tuning SAR app.
+
+Conditions:
+  CreatePowerTuning: !Equals [!Ref DeployPowerTuning, "true"]
+
+Resources:
+  # ---------------------------------------------------------------- DynamoDB
+  ItemsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  # ---------------------------------------------------------------- Logs
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${FunctionName}
+      RetentionInDays: !Ref LogRetentionDays
+
+  # ---------------------------------------------------------------- IAM
+  DynamoDbCrudPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: CRUD on the microservice DynamoDB table only.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DynamoDBItemCrud
+            Effect: Allow
+            Action:
+              - dynamodb:PutItem
+              - dynamodb:GetItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource: !GetAtt ItemsTable.Arn
+
+  CloudWatchLogsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Lets the function write to its own log group.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: WriteLambdaLogs
+            Effect: Allow
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: !Sub "${FunctionLogGroup.Arn}"
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Execution role for the CRUD Lambda function.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref DynamoDbCrudPolicy
+        - !Ref CloudWatchLogsPolicy
+
+  # ---------------------------------------------------------------- Lambda
+  CrudFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: FunctionLogGroup
+    Properties:
+      FunctionName: !Ref FunctionName
+      Description: CRUD router for DynamoDB (create/read/update/delete/list/echo/ping).
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+      Architectures: [x86_64]
+      Code:
+        # Kept in sync with lambda/lambda_function.py by scripts/generate_cfn.py
+        ZipFile: |
+__CODE__
+
+  # ---------------------------------------------------------------- API Gateway
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref ApiName
+      Description: REST front door for the CRUD Lambda.
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  ManagerResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestApi
+      ParentId: !GetAtt RestApi.RootResourceId
+      PathPart: DynamoDBManager
+
+  PostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: !Ref ManagerResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS                      # non-proxy: the JSON body becomes the Lambda event
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CrudFunction.Arn}/invocations
+        PassthroughBehavior: WHEN_NO_MATCH
+        IntegrationResponses:
+          - StatusCode: "200"
+          - StatusCode: "400"
+            SelectionPattern: ".+"     # any Lambda error message -> 400
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels: { application/json: Empty }
+        - StatusCode: "400"
+          ResponseModels: { application/json: Error }
+
+  ApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CrudFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${RestApi}/*/POST/DynamoDBManager
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: PostMethod
+    Properties:
+      RestApiId: !Ref RestApi
+      Description: Initial deployment
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestApi
+      DeploymentId: !Ref ApiDeployment
+      StageName: !Ref StageName
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: !Ref ThrottlingRateLimit
+          ThrottlingBurstLimit: !Ref ThrottlingBurstLimit
+
+  # ---------------------------------------------------------------- Power Tuning (optional)
+  PowerTuning:
+    Type: AWS::Serverless::Application
+    Condition: CreatePowerTuning
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:451282441545:applications/aws-lambda-power-tuning
+        SemanticVersion: !Ref PowerTuningVersion
+      Parameters:
+        lambdaResource: !GetAtt CrudFunction.Arn   # state machine may only tune this function
+
+Outputs:
+  ApiUrl:
+    Description: POST endpoint (use as Postman's api_url)
+    Value: !Sub https://${RestApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${StageName}/DynamoDBManager
+  FunctionArn:
+    Description: Lambda ARN (use as lambdaARN in the Power Tuning input)
+    Value: !GetAtt CrudFunction.Arn
+  TableName:
+    Value: !Ref ItemsTable
+  PowerTuningStateMachineArn:
+    Condition: CreatePowerTuning
+    Description: Start executions here with power-tuning/state-machine-input.json
+    Value: !GetAtt PowerTuning.Outputs.StateMachineARN
+'''
+out = tpl.replace("__CODE__", code_block)
+(root / "cloudformation/template.yaml").write_text(out)
+print("template written,", len(code), "chars of code")

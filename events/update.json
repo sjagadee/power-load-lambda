@@ -1,0 +1,17 @@
+{
+  "operation": "update",
+  "tableName": "lambda-apigateway",
+  "payload": {
+    "Key": {
+      "id": "1234ABCD"
+    },
+    "UpdateExpression": "SET #n = :v",
+    "ExpressionAttributeNames": {
+      "#n": "number"
+    },
+    "ExpressionAttributeValues": {
+      ":v": 10
+    },
+    "ReturnValues": "ALL_NEW"
+  }
+}

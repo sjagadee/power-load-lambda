@@ -1,0 +1,27 @@
+{
+  "strategy": "cost",
+  "num": 10,
+  "visualization": "https://lambda-power-tuning.show/#gAAAAQACAAQ=;EVHsQ1WdJ0TXo6pCya9BQg==;h1GFNU8gPTbz6kE14PlcNQ==",
+  "results": [
+    {
+      "memoryMB": 128,
+      "avgDurationMs": 472.63,
+      "costPerInvocationUSD": 9.933e-07
+    },
+    {
+      "memoryMB": 256,
+      "avgDurationMs": 670.46,
+      "costPerInvocationUSD": 2.818e-06
+    },
+    {
+      "memoryMB": 512,
+      "avgDurationMs": 85.32,
+      "costPerInvocationUSD": 7.224e-07
+    },
+    {
+      "memoryMB": 1024,
+      "avgDurationMs": 48.42,
+      "costPerInvocationUSD": 8.232e-07
+    }
+  ]
+}

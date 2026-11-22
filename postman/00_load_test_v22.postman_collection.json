@@ -1,0 +1,42 @@
+{
+  "info": {
+    "name": "00_load_test_v22",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_url",
+      "value": "https://<API_ID>.execute-api.<REGION>.amazonaws.com/<STAGE>/DynamoDBManager"
+    }
+  ],
+  "item": [
+    {
+      "name": "load test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"operation\": \"list\",\n    \"tableName\": \"lambda-apigateway\",\n    \"payload\": {\n    }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

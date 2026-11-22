@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "Serverless CRUD - Power & Load",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_url",
+      "value": "https://<API_ID>.execute-api.<REGION>.amazonaws.com/prod/DynamoDBManager"
+    }
+  ],
+  "item": [
+    {
+      "name": "load test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"list\",\n  \"tableName\": \"lambda-apigateway\",\n  \"payload\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "echo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"echo\",\n  \"payload\": {\n    \"somekey1\": \"somevalue1\",\n    \"somekey2\": \"somevalue2\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ping",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"ping\",\n  \"payload\": {}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "create",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"create\",\n  \"tableName\": \"lambda-apigateway\",\n  \"payload\": {\n    \"Item\": {\n      \"id\": \"1234ABCD\",\n      \"number\": 5\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"read\",\n  \"tableName\": \"lambda-apigateway\",\n  \"payload\": {\n    \"Key\": {\n      \"id\": \"1234ABCD\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "update",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"update\",\n  \"tableName\": \"lambda-apigateway\",\n  \"payload\": {\n    \"Key\": {\n      \"id\": \"1234ABCD\"\n    },\n    \"UpdateExpression\": \"SET #n = :v\",\n    \"ExpressionAttributeNames\": {\n      \"#n\": \"number\"\n    },\n    \"ExpressionAttributeValues\": {\n      \":v\": 10\n    },\n    \"ReturnValues\": \"ALL_NEW\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "delete",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"operation\": \"delete\",\n  \"tableName\": \"lambda-apigateway\",\n  \"payload\": {\n    \"Key\": {\n      \"id\": \"1234ABCD\"\n    }\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{api_url}}",
+          "host": [
+            "{{api_url}}"
+          ]
+        }
+      }
+    }
+  ]
+}
