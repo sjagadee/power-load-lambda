@@ -1,4 +1,4 @@
-# Serverless CRUD Microservice — Lambda Power Tuning & Load Testing
+# Serverless CRUD Microservice: Lambda Power Tuning & Load Testing
 
 A serverless REST microservice on AWS (**API Gateway → Lambda → DynamoDB**) that I tuned using **AWS Lambda Power Tuning** and load-tested with the **Postman Performance Runner**.
 
