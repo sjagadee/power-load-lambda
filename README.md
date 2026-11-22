@@ -150,7 +150,5 @@ If you deployed with CloudFormation, run `cloudformation/destroy.sh`. Otherwise,
 
 ## References
 
-- [saha-rajdeep/serverless-lab](https://github.com/saha-rajdeep/serverless-lab): base serverless lab
-- [mdevendr/aws-powertuning](https://github.com/mdevendr/aws-powertuning): power tuning reference
 - [alexcasalboni/aws-lambda-power-tuning](https://github.com/alexcasalboni/aws-lambda-power-tuning): the Power Tuning tool
 - [Lambda memory and CPU](https://docs.aws.amazon.com/lambda/latest/dg/configuration-memory.html)
